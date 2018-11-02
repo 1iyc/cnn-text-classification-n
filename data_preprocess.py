@@ -2,8 +2,10 @@ import numpy as np
 import re
 
 def load_data(data_file, class_file, char):
-    data_examples = list(open(data_file, "r", encoding='utf-8').readlines())
-    data_examples = [s.strip() for s in data_examples]
+    if (char):
+        data_examples = list(open(data_file, "r", encoding='utf-8').readlines())
+        data_examples = [re.sub(r"\s{2,}", " <SP> ", re.sub(r"", " ", s.strip())).strip() for s in data_examples]
+
     class_examples = list(open(class_file, "r", encoding='utf-8').readlines())
     class_examples = [re.sub(r" ", "", s.strip()) for s in class_examples]
 

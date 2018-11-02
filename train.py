@@ -44,10 +44,9 @@ def preprocess():
     data_text, class_list = data_preprocess.load_data(FLAGS.data_file, FLAGS.class_file, FLAGS.char)
 
     # Build Vocabulary
-    if (FLAGS.char):
-        data_max_length = max([len(s) for s in data_text])
-        data_processor = learn.preprocessing.ByteProcessor(data_max_length)
-        x = np.array(list(data_processor.fit_transform(data_text)))
+    data_max_length = max([len(s.split(" ")) for s in data_text])
+    data_processor = learn.preprocessing.VocabularyProcessor(data_max_length)
+    x = np.array(list(data_processor.fit_transform(data_text)))
 
     class_processor = learn.preprocessing.VocabularyProcessor(1)
     y = np.array(list(class_processor.fit_transform(class_list)))
@@ -70,7 +69,7 @@ def preprocess():
     del x, y, x_shuffled, y_shuffled
 
     if (FLAGS.char):
-        print("Data Character Size: {:d}".format(data_processor.max_document_length))
+        print("Data Character Size: {:d}".format(len(data_processor.vocabulary_)))
         print("Class List Size: {:d}".format(len(class_processor.vocabulary_)))
         print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
 
@@ -88,7 +87,7 @@ def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
             cnn = TextCNN(
                 sequence_length=x_train.shape[1],
                 num_classes=y_train.shape[1],
-                vocab_size=data_processor.max_document_length,
+                vocab_size=len(data_processor.vocabulary_),
                 embedding_size=FLAGS.embedding_dim,
                 filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
                 num_filters=FLAGS.num_filters,
@@ -139,6 +138,8 @@ def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
             # Write vocabulary
             if (FLAGS.char):
                 data_processor.save(os.path.join(out_dir, "char_data_voca"))
+
+            class_processor.save(os.path.join(out_dir, "class_voca"))
 
             # Initialize all variables
             sess.run(tf.global_variables_initializer())
