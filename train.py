@@ -11,7 +11,7 @@ from text_cnn import TextCNN
 
 # Parameters
 tf.flags.DEFINE_string("data_file", "./data/data.txt", "Input Data File Path")
-tf.flags.DEFINE_string("class_file", "./data/class_file", "Output Class File Path")
+tf.flags.DEFINE_string("class_file", "./data/class.txt", "Output Class File Path")
 
 tf.flags.DEFINE_boolean("char", False, "Classification by Character not Word")
 
@@ -35,24 +35,37 @@ tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after 
 tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
 
+# Class Category
+tf.flags.DEFINE_integer("category_level", None, "Category Level (1 or 2) cf. if 1, 20 30 40 => 20 // if 2, 20 30 40 => 20 30")
+
 FLAGS = tf.flags.FLAGS
 
 def preprocess():
 
     # Load Data
     print("Data Preprocess Stage...")
-    data_text, class_list = data_preprocess.load_data(FLAGS.data_file, FLAGS.class_file, FLAGS.char)
+    data_text, class_list = data_preprocess.load_data(FLAGS.data_file, FLAGS.class_file, FLAGS.char, FLAGS.category_level)
 
     # Build Vocabulary
     data_max_length = max([len(s.split(" ")) for s in data_text])
+    print("Data Max Length: ", data_max_length)
     data_processor = learn.preprocessing.VocabularyProcessor(data_max_length)
+    print("Data Processor Made")
     x = np.array(list(data_processor.fit_transform(data_text)))
+    print("Data Transformed to NPArray")
 
     class_processor = learn.preprocessing.VocabularyProcessor(1)
-    y = np.array(list(class_processor.fit_transform(class_list)))
-    y_max = np.max(y)
+    print("Class Processor Made")
+    y_np = np.array(list(class_processor.fit_transform(class_list)))
+    print("Class Transformed to NPArray")
+    y_max = np.max(y_np)
+    print("Number of Class: ", y_max + 1)
 
-    y = np.concatenate([np.eye(y_max, dtype=int)[l-1] for l in y])
+    y = np.zeros((y_np.shape[0], y_max), dtype=int)
+    print("Zero NPArray for Class Made")
+    y_np = y_np.ravel()
+    y[np.arange(y_np.size), y_np-1] = 1
+    print("One-Hot Encoding for Class Finished")
 
     # Randomly shuffle data
     np.random.seed(10)
