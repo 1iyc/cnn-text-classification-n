@@ -112,8 +112,10 @@ if FLAGS.char:
 
 all_predictions = ["".join(list(class_processor.vocabulary_.reverse(prediction))) for prediction in all_predictions]
 
-predictions_human_readable = np.column_stack((np.array(x_raw), all_predictions))
+predictions_human_readable = np.column_stack((x_raw, y_raw, all_predictions))
 out_path = os.path.join(FLAGS.checkpoint_dir, "..", "prediction.csv")
 print("Saving evaluation to {0}".format(out_path))
-with open(out_path, 'w') as f:
+
+with open(out_path, 'w', newline='') as f:
+    csv.writer(f).writerow(['good\'s name', 'original code', 'predicted code'])
     csv.writer(f).writerows(predictions_human_readable)
