@@ -103,6 +103,15 @@ if y_test is not None:
 
 
 # Save the evaluation to a csv
+if FLAGS.char:
+    """
+    Del Space
+    <SP> to Space
+    """
+    x_raw = data_preprocess.del_space(x_raw)
+
+all_predictions = ["".join(list(class_processor.vocabulary_.reverse(prediction))) for prediction in all_predictions]
+
 predictions_human_readable = np.column_stack((np.array(x_raw), all_predictions))
 out_path = os.path.join(FLAGS.checkpoint_dir, "..", "prediction.csv")
 print("Saving evaluation to {0}".format(out_path))
