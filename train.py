@@ -148,6 +148,20 @@ def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
                 os.makedirs(checkpoint_dir)
             saver = tf.train.Saver(tf.global_variables(), max_to_keep=FLAGS.num_checkpoints)
 
+            # Checkpoint information
+            checkpoint_info = open(os.path.join(os.path.curdir, "runs", "checkpoint_information.txt"), 'a')
+            checkpoint_info.write("###################################################\n")
+            checkpoint_info.write("Checkpoint Dir Name: " + timestamp)
+            if FLAGS.char:
+                checkpoint_info.write("\nCHARACTER")
+            else:
+                checkpoint_info.write("\nWORD")
+            checkpoint_info.write("\nNumber of Trained Data: " + str(len(y_train)))
+            checkpoint_info.write("\nNumber of Tested Data: " + str(len(y_dev)))
+            checkpoint_info.write("\nNumber of Class: " + str(len(class_processor.vocabulary_)))
+            checkpoint_info.write("\n###################################################\n\n\n")
+            checkpoint_info.close()
+
             # Write vocabulary
             if (FLAGS.char):
                 data_processor.save(os.path.join(out_dir, "char_data_voca"))
@@ -194,6 +208,7 @@ def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
             batches = data_preprocess.batch_iter(
                 list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
             # Training loop. For each batch...
+
             for batch in batches:
                 x_batch, y_batch = zip(*batch)
                 train_step(x_batch, y_batch)
