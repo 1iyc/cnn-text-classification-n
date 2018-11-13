@@ -100,8 +100,6 @@ if y_test is not None:
     print("Total number of test examples: {}".format(len(y_test)))
     print("Accuracy: {:g}".format(correct_predictions/float(len(y_test))))
 
-
-
 # Save the evaluation to a csv
 if FLAGS.char:
     """

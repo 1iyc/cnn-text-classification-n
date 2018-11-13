@@ -156,6 +156,7 @@ def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
                 checkpoint_info.write("\nCHARACTER")
             else:
                 checkpoint_info.write("\nWORD")
+            checkpoint_info.write("\nFilters' Size: " + FLAGS.filter_sizes)
             checkpoint_info.write("\nNumber of Trained Data: " + str(len(y_train)))
             checkpoint_info.write("\nNumber of Tested Data: " + str(len(y_dev)))
             checkpoint_info.write("\nNumber of Class: " + str(len(class_processor.vocabulary_)))
