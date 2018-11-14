@@ -52,11 +52,13 @@ def preprocess():
     data_processor = learn.preprocessing.VocabularyProcessor(data_max_length)
     print("Data Processor Made")
     x = np.array(list(data_processor.fit_transform(data_text)))
+    del data_text
     print("Data Transformed to NPArray")
 
     class_processor = learn.preprocessing.VocabularyProcessor(1)
     print("Class Processor Made")
     y_np = np.array(list(class_processor.fit_transform(class_list)))
+    del class_list
     print("Class Transformed to NPArray")
     y_max = np.max(y_np)
     print("Number of Class: ", y_max + 1)
@@ -66,27 +68,37 @@ def preprocess():
     y_np = y_np.ravel()
     y[np.arange(y_np.size), y_np-1] = 1
     print("One-Hot Encoding for Class Finished")
+    del y_np
 
     # Randomly shuffle data
     np.random.seed(10)
+    dev_sample_index = -1 * int(FLAGS.dev_sample_percentage * float(len(y)))
     shuffle_indices = np.random.permutation(np.arange(len(y)))
-    x_shuffled = x[shuffle_indices]
-    y_shuffled = y[shuffle_indices]
+    shuffle_indices = shuffle_indices[dev_sample_index:]
+    #x_shuffled = x[shuffle_indices]
+    #del x
+    #y_shuffled = y[shuffle_indices]
+    #del y
 
     # Split train/test set
     # TODO: This is very crude, should use cross-validation
-    dev_sample_index = -1 * int(FLAGS.dev_sample_percentage * float(len(y)))
-    x_train, x_dev = x_shuffled[:dev_sample_index], x_shuffled[dev_sample_index:]
-    y_train, y_dev = y_shuffled[:dev_sample_index], y_shuffled[dev_sample_index:]
+    # dev_sample_index = -1 * int(FLAGS.dev_sample_percentage * float(len(y)))
+    # x_train, x_dev = x_shuffled[:dev_sample_index], x_shuffled[dev_sample_index:]
+    # y_train, y_dev = y_shuffled[:dev_sample_index], y_shuffled[dev_sample_index:]
 
-    del x, y, x_shuffled, y_shuffled
+    x_dev = x[shuffle_indices]
+    np.delete(x, shuffle_indices)
+    y_dev = y[shuffle_indices]
+    np.delete(y, shuffle_indices)
+
+    #del x_shuffled, y_shuffled
 
     if (FLAGS.char):
         print("Data Character Size: {:d}".format(len(data_processor.vocabulary_)))
         print("Class List Size: {:d}".format(len(class_processor.vocabulary_)))
-        print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
+        print("Train/Dev split: {:d}/{:d}".format(len(y), len(y_dev)))
 
-    return x_train, y_train, data_processor, class_processor, x_dev, y_dev
+    return x, y, data_processor, class_processor, x_dev, y_dev
 
 def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
     # Training
