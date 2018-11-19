@@ -12,6 +12,10 @@ parser.add_argument('--class_file', dest="class_file", type=str, default="./data
 
 args = parser.parse_args()
 
+def progress_count(count, total_count, duplicated_count, iter):
+    if count % iter == 0:
+        print(count, "/", total_count, round(float(count / total_count * 100), 2), "%", duplicated_count, "duplicated found")
+
 def del_duplicates(data_file, class_file):
     data_examples = list(open(data_file, "r", encoding='utf-8').readlines())
     class_examples = list(open(class_file, "r", encoding='utf-8').readlines())
@@ -19,21 +23,22 @@ def del_duplicates(data_file, class_file):
     total_count = len(data_examples)
 
     f = open(data_file + "_duplicates_list.txt", 'w')
-    g = open(class_file + "_duplicates_list.txt", 'w')
 
-    result = []
-    for i, x in enumerate(data_examples):
-        if x in data_examples[:i]:
-            f.write(str(i) + "\t" + data_examples[i])
-            g.write(str(i) + "\t" + class_examples[i])
-            result.append(i)
-            del data_examples[i]
-            del class_examples[i]
-        if (i + 1) % 1000 == 0:
-            print((i + 1), "/", total_count, round(float((i+1) / total_count * 100), 2), "%", len(result), "duplicates found")
+    count = 0
+    duplicated_count = 0
+    for data in data_examples:
+        count += 1
+        duplicated_index = [i for i, v in enumerate(data_examples) if v == data]
+        for j in reversed(duplicated_index[1:]):
+            count += 1
+            duplicated_count += 1
+            f.write(data_examples[j].strip() + "\t" + class_examples[j].strip() + "\n")
+            del data_examples[j]
+            del class_examples[j]
+            progress_count(count, total_count, duplicated_count, 1000)
+        progress_count(count, total_count, duplicated_count, 1000)
 
     f.close()
-    g.close()
 
     with open(data_file + "_refined.txt", 'w') as f:
         for item in data_examples:
