@@ -40,11 +40,11 @@ def del_duplicates(data_file, class_file):
 
     f.close()
 
-    with open(data_file + "_refined.txt", 'w') as f:
+    with open(data_file + "_refined.txt", 'w', encoding="utf-8") as f:
         for item in data_examples:
             f.write(item)
 
-    with open(class_file + "_refined.txt", 'w') as f:
+    with open(class_file + "_refined.txt", 'w', encoding="utf-8") as f:
         for item in class_examples:
             f.write(item)
 

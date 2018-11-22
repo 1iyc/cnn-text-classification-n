@@ -24,12 +24,21 @@ def make_statics(refined_data_file, refined_class_file, duplicated_file):
     duplicated_data = list(open(duplicated_file, 'r', encoding="utf-8").readlines())
 
     duplicated_index = 0
+
+    if args.correct:
+        g = open(refined_class_file + "_corrected.txt", 'w', encoding="utf-8")
+
     with open(duplicated_file + "_statics.txt", 'w', encoding="utf-8") as f:
         for i in range(len(refined_data)):
             data = dict()
             f.write(refined_data[i].strip() + "\t" + refined_class[i].strip() + "\t\t")
             for j in range(duplicated_index, len(duplicated_data)):
                 if refined_data[i].strip() != duplicated_data[duplicated_index].split("\t")[0]:
+                    if args.correct:
+                        if len(data):
+                            g.write(sorted(data, key=data.get, reverse=True)[0] + "\n")
+                        else:
+                            g.write(refined_class[i].strip() + "\n")
                     for k in sorted(data, key=data.get, reverse=True):
                         f.write(k + "\t" + str(data[k]) + "\t")
                     f.write("\n")
