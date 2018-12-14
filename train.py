@@ -35,16 +35,13 @@ tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after 
 tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
 
-# Class Category
-tf.flags.DEFINE_integer("category_level", None, "Category Level (1 or 2) cf. if 1, 20 30 40 => 20 // if 2, 20 30 40 => 20 30")
-
 FLAGS = tf.flags.FLAGS
 
-def preprocess():
 
+def preprocess():
     # Load Data
     print("Data Preprocess Stage...")
-    data_text, class_list = data_preprocess.load_data(FLAGS.data_file, FLAGS.class_file, FLAGS.char, FLAGS.category_level)
+    data_text, class_list = data_preprocess.load_data(FLAGS.data_file, FLAGS.class_file, FLAGS.char)
 
     # Build Vocabulary
     data_max_length = max([len(s.split(" ")) for s in data_text])
@@ -87,9 +84,9 @@ def preprocess():
     # y_train, y_dev = y_shuffled[:dev_sample_index], y_shuffled[dev_sample_index:]
 
     x_dev = x[shuffle_indices]
-    np.delete(x, shuffle_indices)
+    #np.delete(x, shuffle_indices)
     y_dev = y[shuffle_indices]
-    np.delete(y, shuffle_indices)
+    #np.delete(y, shuffle_indices)
 
     #del x_shuffled, y_shuffled
 
@@ -100,9 +97,9 @@ def preprocess():
 
     return x, y, data_processor, class_processor, x_dev, y_dev
 
+
 def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
     # Training
-
     with tf.Graph().as_default():
         session_conf = tf.ConfigProto(
             allow_soft_placement=FLAGS.allow_soft_placement,
@@ -178,6 +175,8 @@ def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
             # Write vocabulary
             if (FLAGS.char):
                 data_processor.save(os.path.join(out_dir, "char_data_voca"))
+            else:
+                data_preprocess.save(os.path.join(out_dir, "word_data_voca"))
 
             class_processor.save(os.path.join(out_dir, "class_voca"))
 
@@ -234,9 +233,11 @@ def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
                     path = saver.save(sess, checkpoint_prefix, global_step=current_step)
                     print("Saved model checkpoint to {}\n".format(path))
 
+
 def main(argv=None):
     x_train, y_train, data_processor, class_processor, x_dev, y_dev = preprocess()
     train(x_train, y_train, data_processor, class_processor, x_dev, y_dev)
+
 
 if __name__ == '__main__':
     tf.app.run()
