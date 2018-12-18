@@ -58,19 +58,20 @@ def preprocess():
     del class_list
     print("Class Transformed to NPArray")
     y_max = np.max(y_np)
-    print("Number of Class: ", y_max + 1)
+    print("Number of Class: ", y_max)
 
-    y = np.zeros((y_np.shape[0], y_max), dtype=int)
-    print("Zero NPArray for Class Made")
-    y_np = y_np.ravel()
-    y[np.arange(y_np.size), y_np-1] = 1
-    print("One-Hot Encoding for Class Finished")
-    del y_np
+    #y = np.zeros((y_np.shape[0], y_max), dtype=int)
+    #print("Zero NPArray for Class Made")
+    #y_np = y_np.ravel()
+    #y[np.arange(y_np.size), y_np-1] = 1
+    #y = tf.one_hot(y_np, y_max)
+    #print("One-Hot Encoding for Class Finished")
+    #del y_np
 
     # Randomly shuffle data
     np.random.seed(10)
-    dev_sample_index = -1 * int(FLAGS.dev_sample_percentage * float(len(y)))
-    shuffle_indices = np.random.permutation(np.arange(len(y)))
+    dev_sample_index = -1 * int(FLAGS.dev_sample_percentage * float(len(y_np)))
+    shuffle_indices = np.random.permutation(np.arange(len(y_np)))
     shuffle_indices = shuffle_indices[dev_sample_index:]
     #x_shuffled = x[shuffle_indices]
     #del x
@@ -85,7 +86,7 @@ def preprocess():
 
     x_dev = x[shuffle_indices]
     #np.delete(x, shuffle_indices)
-    y_dev = y[shuffle_indices]
+    y_dev = y_np[shuffle_indices]
     #np.delete(y, shuffle_indices)
 
     #del x_shuffled, y_shuffled
@@ -93,9 +94,9 @@ def preprocess():
     if (FLAGS.char):
         print("Data Character Size: {:d}".format(len(data_processor.vocabulary_)))
         print("Class List Size: {:d}".format(len(class_processor.vocabulary_)))
-        print("Train/Dev split: {:d}/{:d}".format(len(y), len(y_dev)))
+        print("Train/Dev split: {:d}/{:d}".format(len(y_np), len(y_dev)))
 
-    return x, y, data_processor, class_processor, x_dev, y_dev
+    return x, y_np, data_processor, class_processor, x_dev, y_dev
 
 
 def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
@@ -105,10 +106,11 @@ def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
             allow_soft_placement=FLAGS.allow_soft_placement,
             log_device_placement=FLAGS.log_device_placement)
         sess = tf.Session(config=session_conf)
+        num_classes = np.max(y_train)
         with sess.as_default():
             cnn = TextCNN(
                 sequence_length=x_train.shape[1],
-                num_classes=y_train.shape[1],
+                num_classes=num_classes,
                 vocab_size=len(data_processor.vocabulary_),
                 embedding_size=FLAGS.embedding_dim,
                 filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
@@ -176,7 +178,7 @@ def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
             if (FLAGS.char):
                 data_processor.save(os.path.join(out_dir, "char_data_voca"))
             else:
-                data_preprocess.save(os.path.join(out_dir, "word_data_voca"))
+                data_processor.save(os.path.join(out_dir, "word_data_voca"))
 
             class_processor.save(os.path.join(out_dir, "class_voca"))
 
@@ -221,13 +223,21 @@ def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
                 list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
             # Training loop. For each batch...
 
-            for batch in batches:
+        y_dev_onehot = np.zeros((y_dev.shape[0], num_classes), dtype=int)
+        y_dev = y_dev.ravel()
+        y_dev_onehot[np.arange(y_dev.size), y_dev-1] = 1
+
+        for batch in batches:
                 x_batch, y_batch = zip(*batch)
-                train_step(x_batch, y_batch)
+                y = np.zeros((len(y_batch), num_classes), dtype=int)
+                y_batch = np.asarray(y_batch)
+                y_batch = y_batch.ravel()
+                y[np.arange(y_batch.size), y_batch-1] = 1
+                train_step(x_batch, y)
                 current_step = tf.train.global_step(sess, global_step)
                 if current_step % FLAGS.evaluate_every == 0:
                     print("\nEvaluation:")
-                    dev_step(x_dev, y_dev, writer=dev_summary_writer)
+                    dev_step(x_dev, y_dev_onehot, writer=dev_summary_writer)
                     print("")
                 if current_step % FLAGS.checkpoint_every == 0:
                     path = saver.save(sess, checkpoint_prefix, global_step=current_step)

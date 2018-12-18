@@ -44,7 +44,6 @@ def make_statics(refined_data_file, refined_class_file, duplicated_file):
                     for k in sorted(data, key=data.get, reverse=True):
                         total += data[k]
                         record += k + "\t" + str(data[k]) + "\t"
-                        #f.write(k + "\t" + str(data[k]) + "\t")
                     if data:
                         f.write(str(round(data[max(data, key=data.get)]/total*100, 2)) + "\t")
                     else:
