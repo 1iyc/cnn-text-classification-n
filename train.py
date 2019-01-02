@@ -35,6 +35,9 @@ tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after 
 tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
 
+# Summary
+tf.flags.DEFINE_boolean("summary", False, "Allow Summary")
+
 FLAGS = tf.flags.FLAGS
 
 
@@ -123,34 +126,36 @@ def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
             grads_and_vars = optimizer.compute_gradients(cnn.loss)
             train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
 
-            # Keep track of gradient values and sparsity (optional)
-            grad_summaries = []
-            for g, v in grads_and_vars:
-                if g is not None:
-                    grad_hist_summary = tf.summary.histogram("{}/grad/hist".format(v.name), g)
-                    sparsity_summary = tf.summary.scalar("{}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
-                    grad_summaries.append(grad_hist_summary)
-                    grad_summaries.append(sparsity_summary)
-            grad_summaries_merged = tf.summary.merge(grad_summaries)
+            if FLAGS.summary:
+                # Keep track of gradient values and sparsity (optional)
+                grad_summaries = []
+                for g, v in grads_and_vars:
+                    if g is not None:
+                        grad_hist_summary = tf.summary.histogram("{}/grad/hist".format(v.name), g)
+                        sparsity_summary = tf.summary.scalar("{}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
+                        grad_summaries.append(grad_hist_summary)
+                        grad_summaries.append(sparsity_summary)
+                grad_summaries_merged = tf.summary.merge(grad_summaries)
 
             # Output directory for models and summaries
             timestamp = str(int(time.time()))
             out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
             print("Writing to {}\n".format(out_dir))
 
-            # Summaries for loss and accuracy
-            loss_summary = tf.summary.scalar("loss", cnn.loss)
-            acc_summary = tf.summary.scalar("accuracy", cnn.accuracy)
+            if FLAGS.summary:
+                # Summaries for loss and accuracy
+                loss_summary = tf.summary.scalar("loss", cnn.loss)
+                acc_summary = tf.summary.scalar("accuracy", cnn.accuracy)
 
-            # Train Summaries
-            train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged])
-            train_summary_dir = os.path.join(out_dir, "summaries", "train")
-            train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
+                # Train Summaries
+                train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged])
+                train_summary_dir = os.path.join(out_dir, "summaries", "train")
+                train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
 
-            # Dev summaries
-            dev_summary_op = tf.summary.merge([loss_summary, acc_summary])
-            dev_summary_dir = os.path.join(out_dir, "summaries", "dev")
-            dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, sess.graph)
+                # Dev summaries
+                dev_summary_op = tf.summary.merge([loss_summary, acc_summary])
+                dev_summary_dir = os.path.join(out_dir, "summaries", "dev")
+                dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, sess.graph)
 
             # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
             checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
@@ -171,6 +176,9 @@ def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
             checkpoint_info.write("\nNumber of Trained Data: " + str(len(y_train)))
             checkpoint_info.write("\nNumber of Tested Data: " + str(len(y_dev)))
             checkpoint_info.write("\nNumber of Class: " + str(len(class_processor.vocabulary_)))
+            checkpoint_info.write("\nnum_epochs: " + str(FLAGS.num_epochs))
+            checkpoint_info.write("\nbatch size: " + str(FLAGS.batch_size))
+            checkpoint_info.write("\ndropout_keep_prob: " + str(FLAGS.dropout_keep_prob))
             checkpoint_info.write("\n###################################################\n\n\n")
             checkpoint_info.close()
 
@@ -194,12 +202,20 @@ def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
                     cnn.input_y: y_batch,
                     cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
                 }
-                _, step, summaries, loss, accuracy = sess.run(
-                    [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
-                    feed_dict)
+
+                if FLAGS.summary:
+                    _, step, summaries, loss, accuracy = sess.run(
+                        [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
+                        feed_dict)
+                else:
+                    _, step, loss, accuracy = sess.run(
+                        [train_op, global_step, cnn.loss, cnn.accuracy],
+                        feed_dict)
                 time_str = datetime.datetime.now().isoformat()
                 print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
-                train_summary_writer.add_summary(summaries, step)
+
+                if FLAGS.summary:
+                    train_summary_writer.add_summary(summaries, step)
 
             def dev_step(x_batch, y_batch, writer=None):
                 """
@@ -210,9 +226,14 @@ def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
                     cnn.input_y: y_batch,
                     cnn.dropout_keep_prob: 1.0
                 }
-                step, summaries, loss, accuracy = sess.run(
-                    [global_step, dev_summary_op, cnn.loss, cnn.accuracy],
-                    feed_dict)
+                if FLAGS.summary:
+                    step, summaries, loss, accuracy = sess.run(
+                        [global_step, dev_summary_op, cnn.loss, cnn.accuracy],
+                        feed_dict)
+                else:
+                    step, loss, accuracy = sess.run(
+                        [global_step, cnn.loss, cnn.accuracy],
+                        feed_dict)
                 time_str = datetime.datetime.now().isoformat()
                 print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
                 if writer:
@@ -228,20 +249,33 @@ def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
         y_dev_onehot[np.arange(y_dev.size), y_dev-1] = 1
 
         for batch in batches:
-                x_batch, y_batch = zip(*batch)
-                y = np.zeros((len(y_batch), num_classes), dtype=int)
-                y_batch = np.asarray(y_batch)
-                y_batch = y_batch.ravel()
-                y[np.arange(y_batch.size), y_batch-1] = 1
-                train_step(x_batch, y)
-                current_step = tf.train.global_step(sess, global_step)
-                if current_step % FLAGS.evaluate_every == 0:
-                    print("\nEvaluation:")
+            x_batch, y_batch = zip(*batch)
+            y = np.zeros((len(y_batch), num_classes), dtype=int)
+            y_batch = np.asarray(y_batch)
+            y_batch = y_batch.ravel()
+            y[np.arange(y_batch.size), y_batch-1] = 1
+            train_step(x_batch, y)
+            current_step = tf.train.global_step(sess, global_step)
+            if current_step % FLAGS.evaluate_every == 0:
+                print("\nEvaluation:")
+                if FLAGS.summary:
                     dev_step(x_dev, y_dev_onehot, writer=dev_summary_writer)
-                    print("")
-                if current_step % FLAGS.checkpoint_every == 0:
-                    path = saver.save(sess, checkpoint_prefix, global_step=current_step)
-                    print("Saved model checkpoint to {}\n".format(path))
+                else:
+                    dev_step(x_dev, y_dev_onehot)
+                print("")
+            if current_step % FLAGS.checkpoint_every == 0:
+                path = saver.save(sess, checkpoint_prefix, global_step=current_step)
+                print("Saved model checkpoint to {}\n".format(path))
+
+        print("\nEvaluation:")
+        if FLAGS.summary:
+            dev_step(x_dev, y_dev_onehot, writer=dev_summary_writer)
+        else:
+            dev_step(x_dev, y_dev_onehot)
+        print("")
+        path = saver.save(sess, checkpoint_prefix, global_step=current_step)
+        print("Saved model checkpoint to {}\n".format(path))
+
 
 
 def main(argv=None):
