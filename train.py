@@ -277,7 +277,6 @@ def train(x_train, y_train, data_processor, class_processor, x_dev, y_dev):
         print("Saved model checkpoint to {}\n".format(path))
 
 
-
 def main(argv=None):
     x_train, y_train, data_processor, class_processor, x_dev, y_dev = preprocess()
     train(x_train, y_train, data_processor, class_processor, x_dev, y_dev)

@@ -41,7 +41,7 @@ FLAGS = tf.flags.FLAGS
 # CHANGE THIS: Load data. Load your own data here
 # TODO: Modify Eval_train
 if FLAGS.eval_train:
-    x_raw, y_raw = data_preprocess.load_data(FLAGS.data_file, FLAGS.class_file, FLAGS.char, FLAGS.category_level)
+    x_raw, y_raw = data_preprocess.load_data(FLAGS.data_file, FLAGS.class_file, FLAGS.char)
     class_vocab_path = os.path.join(FLAGS.checkpoint_dir, "..", "class_voca")
     class_processor = learn.preprocessing.VocabularyProcessor.restore(class_vocab_path)
     y_test = np.array(list(class_processor.transform(y_raw)))
@@ -52,7 +52,10 @@ else:
     y_test = [1, 0, 0, 1, 1, 0, 0]
 
 # Map data into vocabulary
-vocab_path = os.path.join(FLAGS.checkpoint_dir, "..", "char_data_voca")
+if FLAGS.char:
+    vocab_path = os.path.join(FLAGS.checkpoint_dir, "..", "char_data_voca")
+else:
+    vocab_path = os.path.join(FLAGS.checkpoint_dir, "..", "word_data_voca")
 vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)
 x_test = np.array(list(vocab_processor.transform(x_raw)))
 
