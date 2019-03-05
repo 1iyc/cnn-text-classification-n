@@ -47,7 +47,7 @@ if FLAGS.eval_train:
     x_raw, y_raw = data_preprocess.load_data(FLAGS.data_file, FLAGS.class_file, FLAGS.char)
     class_vocab_path = os.path.join(FLAGS.checkpoint_dir, "..", "class_voca")
     class_processor = learn.preprocessing.VocabularyProcessor.restore(class_vocab_path)
-    y_test = np.array(list(class_processor.transform(y_raw)))
+    y_test = np.array(list(class_processor.transform(y_raw)), dtype="float32")
     y_test = y_test.ravel()
     #y_test = np.argmax(y_test, axis=1)
 else:
@@ -87,6 +87,7 @@ with graph.as_default():
         # Tensors we want to evaluate
         predictions = graph.get_operation_by_name("output/predictions").outputs[0]
         scores = graph.get_operation_by_name("output/scores").outputs[0]
+        softmaxes = tf.nn.softmax(scores)
         top_scores = tf.nn.top_k(scores, k=FLAGS.top_k)
 
         # Generate batches for one epoch
@@ -98,6 +99,7 @@ with graph.as_default():
 
         for x_test_batch in batches:
             top_predictions = sess.run(top_scores, {input_x: x_test_batch, dropout_keep_prob: 1.0})
+            softmaxes_np = sess.run(softmaxes, {input_x: x_test_batch, dropout_keep_prob: 1.0})
             all_predictions = np.concatenate([all_predictions, top_predictions.indices])
 
         all_predictions = all_predictions + 1
@@ -107,6 +109,7 @@ if y_test is not None:
     correct_predictions = 0.0
     for i in range(all_predictions.shape[0]):
         correct_predictions += (y_test[i] in all_predictions[i])
+    print("Rank: {}".format(FLAGS.top_k))
     print("Total number of test examples: {}".format(len(y_test)))
     print("Accuracy: {:g}".format(correct_predictions/float(len(y_test))))
 
