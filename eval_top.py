@@ -35,11 +35,11 @@ tf.flags.DEFINE_integer("category_level", None, "Category Level (1 or 2) cf. if 
 tf.flags.DEFINE_integer("top_k", 1, "Allow evaluate ranking")
 
 FLAGS = tf.flags.FLAGS
-#FLAGS._parse_flags()
-#print("\nParameters:")
-#for attr, value in sorted(FLAGS.__flags.items()):
-#    print("{}={}".format(attr.upper(), value))
-#print("")
+# FLAGS._parse_flags()
+# print("\nParameters:")
+# for attr, value in sorted(FLAGS.__flags.items()):
+#     print("{}={}".format(attr.upper(), value))
+# print("")
 
 # CHANGE THIS: Load data. Load your own data here
 # TODO: Modify Eval_train
@@ -49,7 +49,7 @@ if FLAGS.eval_train:
     class_processor = learn.preprocessing.VocabularyProcessor.restore(class_vocab_path)
     y_test = np.array(list(class_processor.transform(y_raw)), dtype="float32")
     y_test = y_test.ravel()
-    #y_test = np.argmax(y_test, axis=1)
+    # y_test = np.argmax(y_test, axis=1)
 else:
     x_raw = ["a masterpiece four years in the making", "everything is off.", "what the fuck", "i love you", "hello, ma friend?", "go to hell", "do you want to be killed?"]
     y_test = [1, 0, 0, 1, 1, 0, 0]
@@ -95,12 +95,15 @@ with graph.as_default():
 
         # Collect the predictions here
         all_predictions = np.empty(shape=(0, FLAGS.top_k), dtype='int')
+        all_softmaxes = np.empty(shape=(0, FLAGS.top_k), dtype='float32')
         #all_predictions = np.dtype('uint32')
 
         for x_test_batch in batches:
             top_predictions = sess.run(top_scores, {input_x: x_test_batch, dropout_keep_prob: 1.0})
             softmaxes_np = sess.run(softmaxes, {input_x: x_test_batch, dropout_keep_prob: 1.0})
+            softmaxes_np = np.sort(softmaxes_np, axis=1)[::, :-1*FLAGS.top_k-1:-1]
             all_predictions = np.concatenate([all_predictions, top_predictions.indices])
+            all_softmaxes = np.concatenate([all_softmaxes, softmaxes_np])
 
         all_predictions = all_predictions + 1
 
@@ -124,7 +127,7 @@ if FLAGS.char:
 all_predictions = [["".join(list(class_processor.vocabulary_.reverse(prediction))) for prediction in predictions]
                    for predictions in all_predictions]
 
-predictions_human_readable = np.column_stack((x_raw, y_raw, all_predictions))
+predictions_human_readable = np.column_stack((x_raw, y_raw, all_predictions, all_softmaxes))
 out_path = os.path.join(FLAGS.checkpoint_dir, "..", "prediction.csv")
 print("Saving evaluation to {0}".format(out_path))
 
