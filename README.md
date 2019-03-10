@@ -2,6 +2,7 @@
 refer http://www.wildml.com/2015/12/implementing-a-cnn-for-text-classification-in-tensorflow/
 
 ## train.py
+Train model that classifies words or sentences 
 
 ### Excute parameter
 
@@ -16,12 +17,16 @@ refer http://www.wildml.com/2015/12/implementing-a-cnn-for-text-classification-i
 --batch_size=256
 ```
 
+## eval.py
+Evaluate model using file.
+Adding more features....
+
 # tensorboard
-실행
+Excute
 ```
 tensorboard --logdir=[checkpointdir]
 ```
-접속
+Access
 ```html
 localhost:6006
 ```
