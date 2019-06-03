@@ -58,8 +58,10 @@ def make_statics(refined_data_file, refined_class_file, duplicated_file):
                         data[duplicated_data[duplicated_index].split("\t")[1].strip()] = 1
                 duplicated_index += 1
 
+
 def main():
     make_statics(args.refined_data_file, args.refined_class_file, args.duplicated_file)
+
 
 if __name__ == '__main__':
     main()
