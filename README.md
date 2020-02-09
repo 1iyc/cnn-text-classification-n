@@ -17,6 +17,13 @@ Train model that classifies words or sentences
 --batch_size=256
 ```
 
+```
+--data_file=[eval data file path]
+--class_file=[class data file path]
+--eval_train
+--checkpoint_dir=./runs/1580930240/checkpoints/
+```
+
 ## eval.py
 Evaluate model using file.
 Adding more features....
